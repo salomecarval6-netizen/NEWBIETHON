@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoodBloom — Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">🌸</div>
+      <span class="nav-logo-text">Mood<span>Bloom</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html"    data-page="home"    class="active"><span>🏠</span><span>Dashboard</span></a></li>
+      <li><a href="logmoods.html" data-page="log">    <span>✏️</span><span>Log Mood</span></a></li>
+      <li><a href="calendar.html" data-page="cal">    <span>📅</span><span>Calendar</span></a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Page -->
+<main class="page" id="dashPage">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-tag">🌿 Dashboard</div>
+    <h1>Good <em id="timeGreeting">morning</em>, <em>how are you today?</em></h1>
+    <p>Your emotional journey at a glance — patterns, insights, and trends.</p>
+  </div>
+
+  <!-- Quick-log CTA or today's entry -->
+  <div id="todayBanner" class="card mb-3" style="background:linear-gradient(135deg,var(--sage-pale),var(--lav-pale));border:none">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- Stat row -->
+  <div class="grid-3 mb-3" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-value" id="statStreak">—</div>
+      <div class="stat-label">Day Streak</div>
+      <div class="stat-sub">consecutive logs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statAvg">—</div>
+      <div class="stat-label">Avg Mood Score</div>
+      <div class="stat-sub">this week (out of 9)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statConsist">—</div>
+      <div class="stat-label">Consistency</div>
+      <div class="stat-sub">last 14 days</div>
+    </div>
+  </div>
+
+  <!-- Grid: Trend + Volatility -->
+  <div class="grid-2 mb-3">
+    <!-- Trend Panel -->
+    <div class="card">
+      <div class="card-title">📈 Mood Trend</div>
+      <div id="trendDisplay" style="display:flex;align-items:center;gap:12px;margin-bottom:1rem">
+        <span id="trendEmoji" style="font-size:2rem">—</span>
+        <div>
+          <div style="font-size:1.1rem;font-weight:600;color:var(--bark)" id="trendLabel">Loading...</div>
+          <div class="text-sm text-muted" id="trendSub">comparing recent vs prior entries</div>
+        </div>
+      </div>
+      <!-- Mini spark-line -->
+      <div style="display:flex;align-items:flex-end;gap:4px;height:48px;margin-top:0.5rem" id="sparkLine"></div>
+      <div class="text-xs text-muted mt-1">Last 10 entries</div>
+    </div>
+
+    <!-- Volatility -->
+    <div class="card">
+      <div class="card-title">🌊 Emotional Volatility</div>
+      <div style="margin-bottom:0.75rem">
+        <div style="font-size:2rem;font-weight:700;color:var(--bark);font-family:var(--font-display)" id="volScore">—</div>
+        <div class="text-sm text-muted">out of 10 — <span id="volLabel">calculating…</span></div>
+      </div>
+      <div class="volatility-bar">
+        <div class="volatility-thumb" id="volThumb" style="left:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px" class="text-xs text-muted">
+        <span>Very stable</span><span>Moderate</span><span>High flux</span>
+      </div>
+      <div class="text-xs text-muted mt-2" id="volInsight"></div>
+    </div>
+  </div>
+
+  <!-- Grid: Weekly breakdown + Mood distribution -->
+  <div class="grid-2 mb-3">
+
+    <!-- Weekly Summary -->
+    <div class="card">
+      <div class="flex-between mb-2">
+        <div class="card-title" style="margin:0">📊 This Week</div>
+        <div id="weekDateRange" class="text-xs text-muted"></div>
+      </div>
+      <div id="weeklyEmpty" class="empty-state hidden">
+        <div class="empty-state-icon">📅</div>
+        <div class="empty-state-title">No entries this week</div>
+        <div class="empty-state-text">Start logging to see your weekly summary here.</div>
+      </div>
+      <div id="weeklyContent">
+        <div style="margin-bottom:1rem;padding:1rem;background:var(--cream);border-radius:12px;text-align:center">
+          <div style="font-size:1.8rem" id="weekDominantEmoji">—</div>
+          <div style="font-weight:600;color:var(--bark);margin-top:4px" id="weekDominantLabel">Most frequent mood</div>
+          <div class="text-xs text-muted mt-1">Best day: <strong id="weekBestDay">—</strong></div>
+        </div>
+        <div id="weekBarChart" class="bar-chart"></div>
+      </div>
+    </div>
+
+    <!-- Mood distribution (all time) -->
+    <div class="card">
+      <div class="card-title">🎨 All-Time Distribution</div>
+      <div id="allTimeEmpty" class="empty-state hidden">
+        <div class="empty-state-icon">🎭</div>
+        <div class="empty-state-title">No data yet</div>
+      </div>
+      <div id="allTimeChart" class="bar-chart"></div>
+      <div class="section-divider"></div>
+      <div class="flex-between text-xs text-muted" style="margin-top:0.75rem">
+        <span>Total entries: <strong id="totalEntries">0</strong></span>
+        <button class="btn btn-sm btn-ghost" id="exportBtn">⬇ Export Report</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Insights Panel -->
+  <div class="card mb-3">
+    <div class="card-title">💡 Insights & Recommendations</div>
+    <div id="insightsList" style="display:flex;flex-direction:column;gap:0.75rem"></div>
+  </div>
+
+  <!-- Word Cloud -->
+  <div class="card mb-3">
+    <div class="flex-between mb-2">
+      <div class="card-title" style="margin:0">☁️ Reflection Word Cloud</div>
+      <div class="text-xs text-muted">from your journal & notes</div>
+    </div>
+    <div id="wordCloud"></div>
+  </div>
+
+  <!-- Prediction + Keyword Correlation -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔮 Tomorrow's Forecast</div>
+      <div id="predictionBox" style="text-align:center;padding:1rem">
+        <div style="font-size:3rem" id="predEmoji">—</div>
+        <div style="font-size:1.1rem;font-weight:600;color:var(--bark);margin-top:8px" id="predLabel">—</div>
+        <div class="text-xs text-muted mt-1">Based on your recent pattern</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔗 Mood–Keyword Correlation</div>
+      <div id="correlationList" style="display:flex;flex-direction:column;gap:8px">
+        <div class="empty-state">
+          <div class="empty-state-text">Write reflections to see keyword patterns per mood.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toastContainer"></div>
+
+<script src="style.js"></script>
+<script>
+(function() {
+
+  // Greet by time
+  const hour = new Date().getHours();
+  const greetEl = document.getElementById('timeGreeting');
+  if (greetEl) {
+    if (hour < 12) greetEl.textContent = 'morning';
+    else if (hour < 17) greetEl.textContent = 'afternoon';
+    else greetEl.textContent = 'evening';
+  }
+
+  function renderDashboard() {
+    const entries = State.getAllEntries();
+
+    // ── Today Banner ────────────────────────────────────────────────────────
+    const banner  = document.getElementById('todayBanner');
+    const todayEntry = State.getEntryByDate(today());
+    if (todayEntry) {
+      const m = MOODS[todayEntry.mood] || MOODS.neutral;
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div style="font-size:2.5rem">${m.emoji}</div>
+          <div style="flex:1">
+            <div style="font-weight:600;color:var(--bark);font-family:var(--font-display)">Today you're feeling <em>${m.label}</em></div>
+            <div class="text-sm text-muted">${todayEntry.note || 'No note added'} · Intensity ${todayEntry.intensity}/10</div>
+          </div>
+          <a href="logmoods.html" class="btn btn-secondary btn-sm">Edit Today's Entry</a>
+        </div>`;
+    } else {
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div style="font-size:2.5rem">🌸</div>
+          <div style="flex:1">
+            <div style="font-weight:600;color:var(--bark);font-family:var(--font-display)">You haven't logged today yet</div>
+            <div class="text-sm text-muted">Take 30 seconds to check in with yourself.</div>
+          </div>
+          <a href="logmoods.html" class="btn btn-primary">Log Today's Mood</a>
+        </div>`;
+    }
+
+    // ── Stats ───────────────────────────────────────────────────────────────
+    // Streak
+    let streak = 0;
+    const todayStr = today();
+    for (let i = 0; i < 365; i++) {
+      if (State.getEntryByDate(addDays(todayStr, -i))) streak++;
+      else break;
+    }
+    document.getElementById('statStreak').textContent = streak;
+
+    // Weekly avg
+    const wSummary = Analytics.weeklySummary(entries);
+    document.getElementById('statAvg').textContent = wSummary ? wSummary.avgScore : '—';
+
+    // Consistency
+    const consist = Analytics.consistency(entries);
+    document.getElementById('statConsist').textContent = consist + '%';
+
+    // ── Trend ───────────────────────────────────────────────────────────────
+    const trend = Analytics.trendAnalysis(entries);
+    const trendEmojis = { improving:'🚀', declining:'📉', stable:'⚖️', insufficient:'🌱' };
+    document.getElementById('trendEmoji').textContent = trendEmojis[trend.trend] || '—';
+    document.getElementById('trendLabel').textContent = trend.label;
+    const deltaTxt = trend.delta != null ? ` (Δ ${trend.delta > 0 ? '+' : ''}${trend.delta?.toFixed(1)})` : '';
+    document.getElementById('trendSub').textContent = `Recent vs prior average${deltaTxt}`;
+
+    // Sparkline
+    const spark = document.getElementById('sparkLine');
+    spark.innerHTML = '';
+    const sparkEntries = entries.slice(0, 10).reverse();
+    sparkEntries.forEach(e => {
+      const m = MOODS[e.mood] || MOODS.neutral;
+      const h = Math.max(8, (m.score / 9) * 48);
+      const bar = document.createElement('div');
+      bar.title = `${m.emoji} ${e.date}`;
+      bar.style.cssText = `flex:1;height:${h}px;background:${m.color};border-radius:4px 4px 0 0;opacity:0.8;transition:opacity 0.2s;cursor:default`;
+      bar.addEventListener('mouseenter', () => bar.style.opacity = '1');
+      bar.addEventListener('mouseleave', () => bar.style.opacity = '0.8');
+      spark.appendChild(bar);
+    });
+    if (!sparkEntries.length) spark.innerHTML = '<span class="text-xs text-muted">Log entries to see sparkline</span>';
+
+    // ── Volatility ──────────────────────────────────────────────────────────
+    const vol = Analytics.volatilityIndex(entries);
+    document.getElementById('volScore').textContent = vol;
+    document.getElementById('volThumb').style.left = (vol / 10 * 100) + '%';
+    const volLabels = { 0:'Perfectly steady', 3:'Gently flowing', 5:'Moderately variable', 7:'Quite turbulent', 9:'Highly volatile' };
+    const closest   = Object.keys(volLabels).sort((a,b) => Math.abs(a-vol)-Math.abs(b-vol))[0];
+    document.getElementById('volLabel').textContent = volLabels[closest];
+    document.getElementById('volInsight').textContent = vol >= 6
+      ? 'High volatility can signal stress or big changes — journaling helps.'
+      : vol <= 2 ? 'Very stable — great emotional groundedness.' : 'Healthy variability — you\'re responding to life naturally.';
+
+    // ── Weekly Summary ──────────────────────────────────────────────────────
+    const ws = Analytics.weeklySummary(entries);
+    const wStart = getWeekStart(today());
+    document.getElementById('weekDateRange').textContent =
+      formatDate(wStart, {month:'short',day:'numeric'}) + ' – ' + formatDate(addDays(wStart,6), {month:'short',day:'numeric'});
+
+    if (!ws) {
+      document.getElementById('weeklyEmpty').classList.remove('hidden');
+      document.getElementById('weeklyContent').classList.add('hidden');
+    } else {
+      document.getElementById('weeklyEmpty').classList.add('hidden');
+      document.getElementById('weeklyContent').classList.remove('hidden');
+      const dm = MOODS[ws.dominant] || MOODS.neutral;
+      document.getElementById('weekDominantEmoji').textContent = dm.emoji;
+      document.getElementById('weekDominantLabel').textContent = dm.label;
+      document.getElementById('weekBestDay').textContent = ws.bestDay ? formatDate(ws.bestDay.date,{weekday:'long',month:'short',day:'numeric'}) : '—';
+
+      const wData = Object.entries(ws.moodCounts).map(([mood,cnt]) => ({
+        label: (MOODS[mood]?.emoji || '') + ' ' + (MOODS[mood]?.label || mood),
+        count: cnt,
+        color: MOODS[mood]?.color,
+      }));
+      buildBarChart(document.getElementById('weekBarChart'), wData);
+    }
+
+    // ── All-Time Distribution ────────────────────────────────────────────────
+    if (!entries.length) {
+      document.getElementById('allTimeEmpty').classList.remove('hidden');
+      document.getElementById('allTimeChart').innerHTML = '';
+    } else {
+      document.getElementById('allTimeEmpty').classList.add('hidden');
+      const counts = {};
+      entries.forEach(e => { counts[e.mood] = (counts[e.mood]||0)+1; });
+      const atData = Object.entries(counts)
+        .sort((a,b)=>b[1]-a[1])
+        .map(([mood,cnt]) => ({
+          label: (MOODS[mood]?.emoji||'') + ' ' + (MOODS[mood]?.label||mood),
+          count: cnt, color: MOODS[mood]?.color,
+        }));
+      buildBarChart(document.getElementById('allTimeChart'), atData);
+    }
+    document.getElementById('totalEntries').textContent = entries.length;
+
+    // ── Insights ─────────────────────────────────────────────────────────────
+    const insightsList = document.getElementById('insightsList');
+    insightsList.innerHTML = '';
+    if (!entries.length) {
+      insightsList.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🌱</div><div class="empty-state-title">Start logging to get insights</div><div class="empty-state-text">Your personalised emotional insights will appear here after a few entries.</div></div>`;
+    } else {
+      Analytics.generateInsights(entries).forEach(insight => {
+        insightsList.appendChild(buildInsightCard(insight));
+      });
+    }
+
+    // ── Word Cloud ────────────────────────────────────────────────────────────
+    const freq = Analytics.allWordFreq(entries);
+    buildWordCloud(freq, document.getElementById('wordCloud'));
+
+    // ── Prediction ────────────────────────────────────────────────────────────
+    const pred = Analytics.predictNextMood(entries);
+    if (pred) {
+      const pm = MOODS[pred];
+      document.getElementById('predEmoji').textContent  = pm?.emoji || '—';
+      document.getElementById('predLabel').textContent  = pm?.label || pred;
+    }
+
+    // ── Correlation ───────────────────────────────────────────────────────────
+    const corr = Analytics.keywordCorrelation(entries);
+    const corrList = document.getElementById('correlationList');
+    corrList.innerHTML = '';
+    const corrEntries = Object.entries(corr).filter(([,kws]) => kws.length);
+    if (!corrEntries.length) {
+      corrList.innerHTML = `<div class="empty-state"><div class="empty-state-text">Write reflections to see keyword patterns per mood.</div></div>`;
+    } else {
+      corrEntries.forEach(([mood, kws]) => {
+        const m = MOODS[mood] || MOODS.neutral;
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+        row.innerHTML = `<span style="font-size:1.1rem">${m.emoji}</span>
+          <span class="text-sm" style="font-weight:600;color:var(--bark);min-width:60px">${m.label}</span>
+          ${kws.map(w=>`<span style="background:${m.color}22;color:${m.color};padding:2px 8px;border-radius:99px;font-size:0.75rem;font-weight:600">${w}</span>`).join('')}`;
+        corrList.appendChild(row);
+      });
+    }
+  }
+
+  // Export button
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    exportReport(State.getAllEntries());
+  });
+
+  // Re-render on state change
+  State.subscribe(renderDashboard);
+  renderDashboard();
+
+})();
+</script>
+</body>
+</html>

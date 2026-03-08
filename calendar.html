@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoodBloom — Calendar</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+  <style>
+    .cal-day { position: relative; }
+    .cal-day:focus { outline: 2px solid var(--sage); outline-offset: 2px; }
+    .detail-panel {
+      position: sticky;
+      top: 88px;
+    }
+    .month-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 1rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      color: var(--bark-light);
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    #heatStrip {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    .heat-cell {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .heat-cell:hover { transform: scale(1.4); }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">🌸</div>
+      <span class="nav-logo-text">Mood<span>Bloom</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html"    data-page="home"><span>🏠</span><span>Dashboard</span></a></li>
+      <li><a href="logmoods.html" data-page="log"><span>✏️</span><span>Log Mood</span></a></li>
+      <li><a href="calendar.html" data-page="cal" class="active"><span>📅</span><span>Calendar</span></a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="page-header">
+    <div class="page-tag">📅 Calendar</div>
+    <h1>Your <em>Mood Map</em></h1>
+    <p>Visualize how your emotions have unfolded over time.</p>
+  </div>
+
+  <div class="grid-2" style="gap:2rem;align-items:start">
+
+    <!-- ── LEFT: Calendar ─────────────────────────────────────────────────── -->
+    <div>
+      <div class="card">
+        <!-- Month nav -->
+        <div class="cal-header">
+          <button class="cal-nav-btn" id="prevMonth" aria-label="Previous month">‹</button>
+          <div class="cal-title" id="calTitle">Month Year</div>
+          <button class="cal-nav-btn" id="nextMonth" aria-label="Next month">›</button>
+        </div>
+
+        <!-- Day-of-week headers -->
+        <div class="cal-grid" id="calDowRow">
+          <!-- filled by JS -->
+        </div>
+
+        <!-- Calendar days -->
+        <div class="cal-grid" id="calDays" style="margin-top:4px">
+          <!-- filled by JS -->
+        </div>
+
+        <!-- Legend -->
+        <div class="month-legend" id="monthLegend"></div>
+      </div>
+
+      <!-- Mood Frequency Heatmap (yearly overview) -->
+      <div class="card mt-2">
+        <div class="card-title">🌡️ Yearly Mood Heatmap</div>
+        <div class="text-xs text-muted mb-2">Last 365 days — hover for date</div>
+        <div id="heatStrip"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px" class="text-xs text-muted">
+          <span>Less</span>
+          <div style="display:flex;gap:2px">
+            <div style="width:12px;height:12px;border-radius:2px;background:var(--cream);border:1px solid var(--sage-pale)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:var(--sage-pale)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:var(--sage-light)"></div>
+            <div style="width:12px;height:12px;border-radius:2px;background:var(--sage)"></div>
+          </div>
+          <span>More logged</span>
+        </div>
+      </div>
+
+      <!-- Monthly Statistics -->
+      <div class="card mt-2">
+        <div class="card-title">📊 Monthly Stats</div>
+        <div class="grid-3" id="monthStats" style="gap:0.75rem">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Detail + Weekly Summary ─────────────────────────────────── -->
+    <div class="detail-panel">
+
+      <!-- Selected Day Detail -->
+      <div class="card mb-2" id="dayDetail">
+        <div class="card-title">📌 Selected Day</div>
+        <div id="dayDetailContent">
+          <div class="empty-state">
+            <div class="empty-state-icon">👆</div>
+            <div class="empty-state-title">Click a day</div>
+            <div class="empty-state-text">Select any calendar day to see its mood entry.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Summary -->
+      <div class="card mb-2">
+        <div class="card-title">📅 Week Summary</div>
+        <div id="weekSummaryContent">
+          <div class="empty-state">
+            <div class="empty-state-text">Select a day to see that week's summary.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Trend -->
+      <div class="card">
+        <div class="card-title">📈 Monthly Trend</div>
+        <div id="monthTrendContent">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<div id="toastContainer"></div>
+<script src="style.js"></script>
+<script>
+(function() {
+
+  const DAYS_OF_WEEK = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  let currentYear  = new Date().getFullYear();
+  let currentMonth = new Date().getMonth() + 1; // 1-indexed
+  let selectedDate = today();
+
+  // Build day-of-week header
+  const dowRow = document.getElementById('calDowRow');
+  DAYS_OF_WEEK.forEach(d => {
+    const cell = document.createElement('div');
+    cell.className = 'cal-dow';
+    cell.textContent = d;
+    dowRow.appendChild(cell);
+  });
+
+  // ── Render calendar ──────────────────────────────────────────────────────
+  function renderCalendar() {
+    const entries = State.getAllEntries();
+    const byDate  = {};
+    entries.forEach(e => { byDate[e.date] = e; });
+
+    document.getElementById('calTitle').textContent = `${MONTHS[currentMonth-1]} ${currentYear}`;
+
+    const grid     = document.getElementById('calDays');
+    const legend   = document.getElementById('monthLegend');
+    grid.innerHTML = '';
+    legend.innerHTML = '';
+
+    const firstDay   = getFirstDayOfMonth(currentYear, currentMonth);
+    const daysInMon  = getDaysInMonth(currentYear, currentMonth);
+    const daysInPrev = getDaysInMonth(currentYear, currentMonth - 1 || 12);
+    const todayStr   = today();
+
+    const moodsThisMonth = new Set();
+    let totalScore = 0, scoredDays = 0;
+
+    // Trailing days from prev month
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const day  = daysInPrev - i;
+      const cell = document.createElement('div');
+      cell.className = 'cal-day other-month';
+      cell.innerHTML = `<span class="cal-day-num">${day}</span>`;
+      grid.appendChild(cell);
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMon; d++) {
+      const ds   = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const entry= byDate[ds];
+      const m    = entry ? (MOODS[entry.mood] || MOODS.neutral) : null;
+      const cell = document.createElement('div');
+      cell.className = 'cal-day' + (ds === todayStr ? ' today' : '') + (ds === selectedDate ? ' selected-day' : '');
+      cell.tabIndex = 0;
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-label', ds);
+
+      if (m) {
+        cell.style.setProperty('--mood-bg',     m.color + '25');
+        cell.style.setProperty('--mood-border',  m.color + '66');
+        cell.classList.add('has-mood');
+        moodsThisMonth.add(entry.mood);
+        totalScore += m.score * (entry.intensity / 5);
+        scoredDays++;
+        cell.innerHTML = `<span class="cal-day-num">${d}</span><span class="cal-day-emoji">${m.emoji}</span>`;
+      } else {
+        cell.innerHTML = `<span class="cal-day-num">${d}</span>`;
+      }
+
+      cell.addEventListener('click', () => selectDay(ds, entry));
+      cell.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') selectDay(ds, entry); });
+      grid.appendChild(cell);
+    }
+
+    // Leading days of next month
+    const totalCells = Math.ceil((firstDay + daysInMon) / 7) * 7;
+    const trailing   = totalCells - firstDay - daysInMon;
+    for (let d = 1; d <= trailing; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-day other-month';
+      cell.innerHTML = `<span class="cal-day-num">${d}</span>`;
+      grid.appendChild(cell);
+    }
+
+    // Legend
+    moodsThisMonth.forEach(moodKey => {
+      const m    = MOODS[moodKey];
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<span class="legend-dot" style="background:${m.color}"></span>${m.emoji} ${m.label}`;
+      legend.appendChild(item);
+    });
+
+    // Monthly stats
+    renderMonthStats(entries, totalScore, scoredDays, daysInMon);
+
+    // Monthly trend
+    renderMonthTrend(entries);
+
+    // Heatmap
+    renderHeatmap(byDate);
+  }
+
+  // ── Select a day ─────────────────────────────────────────────────────────
+  function selectDay(ds, entry) {
+    selectedDate = ds;
+
+    // highlight
+    document.querySelectorAll('.cal-day.selected-day').forEach(c => c.classList.remove('selected-day'));
+    document.querySelectorAll('.cal-day').forEach(c => {
+      if (c.getAttribute('aria-label') === ds) c.classList.add('selected-day');
+    });
+
+    // Day detail
+    const detail = document.getElementById('dayDetailContent');
+    if (!entry) {
+      detail.innerHTML = `
+        <div style="text-align:center;padding:1rem">
+          <div style="font-size:1.5rem;margin-bottom:8px">📭</div>
+          <div style="font-weight:600;color:var(--bark)">${formatDate(ds, {weekday:'long',month:'long',day:'numeric'})}</div>
+          <div class="text-sm text-muted mt-1">No mood logged on this day.</div>
+          <a href="logmoods.html" class="btn btn-primary btn-sm" style="margin-top:1rem">Log mood for this day</a>
+        </div>`;
+    } else {
+      const m = MOODS[entry.mood] || MOODS.neutral;
+      const journal = State.getJournal(ds);
+      detail.innerHTML = `
+        <div style="text-align:center;margin-bottom:1rem">
+          <div style="font-size:2.5rem">${m.emoji}</div>
+          <div style="font-weight:600;font-family:var(--font-display);font-size:1.2rem;color:var(--bark);margin-top:6px">${m.label}</div>
+          <div class="text-xs text-muted">${formatDate(ds, {weekday:'long',month:'long',day:'numeric'})}</div>
+          <div style="display:flex;justify-content:center;gap:8px;margin-top:8px">
+            <span class="mood-chip" style="background:${m.color}20;color:${m.color};border:1px solid ${m.color}44">⚡ ${entry.intensity}/10</span>
+          </div>
+        </div>
+        ${entry.note ? `<div style="padding:0.75rem;background:var(--cream);border-radius:var(--radius-sm);margin-bottom:0.75rem;font-size:0.88rem;color:var(--bark)">💬 ${entry.note}</div>` : ''}
+        ${entry.reflection ? `
+          <div style="border-left:3px solid var(--sage-light);padding-left:0.75rem;margin-bottom:0.75rem">
+            <div class="text-xs text-muted mb-1">Reflection</div>
+            <div style="font-family:var(--font-hand);font-size:0.95rem;color:var(--bark);line-height:1.7">${entry.reflection}</div>
+          </div>` : ''}
+        ${journal ? `
+          <div style="border-left:3px solid var(--lav-pale);padding-left:0.75rem">
+            <div class="text-xs text-muted mb-1">Journal</div>
+            <div style="font-family:var(--font-hand);font-size:0.9rem;color:var(--bark-light);line-height:1.7">${journal.slice(0,300)}${journal.length>300?'…':''}</div>
+          </div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:1rem">
+          <a href="logmoods.html" class="btn btn-secondary btn-sm">✏️ Edit</a>
+          <button class="btn btn-danger btn-sm" id="deleteFromCal">🗑 Delete</button>
+        </div>`;
+
+      document.getElementById('deleteFromCal')?.addEventListener('click', () => {
+        if (confirm('Delete this entry?')) {
+          State.deleteEntry(entry.id);
+          showToast('Entry deleted', 'info');
+          renderCalendar();
+          document.getElementById('dayDetailContent').innerHTML = '<div class="empty-state"><div class="empty-state-text">Entry deleted.</div></div>';
+        }
+      });
+    }
+
+    // Week summary
+    renderWeekSummary(ds);
+  }
+
+  // ── Week Summary ──────────────────────────────────────────────────────────
+  function renderWeekSummary(dateStr) {
+    const entries = State.getAllEntries();
+    const wStart  = getWeekStart(dateStr);
+    const ws      = Analytics.weeklySummary(entries, wStart);
+    const el      = document.getElementById('weekSummaryContent');
+
+    if (!ws) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-text">No entries for the week of ${formatDate(wStart,{month:'short',day:'numeric'})}.</div></div>`;
+      return;
+    }
+
+    const dm = MOODS[ws.dominant] || MOODS.neutral;
+    let html = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <div style="font-size:1.8rem">${dm.emoji}</div>
+        <div>
+          <div style="font-weight:600;color:var(--bark)">${dm.label} week</div>
+          <div class="text-xs text-muted">${formatDate(wStart,{month:'short',day:'numeric'})} – ${formatDate(addDays(wStart,6),{month:'short',day:'numeric'})}</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:1.4rem;font-weight:700;color:var(--bark);font-family:var(--font-display)">${ws.avgScore}</div>
+          <div class="text-xs text-muted">avg score</div>
+        </div>
+      </div>`;
+
+    html += `<div class="bar-chart" id="wsBarInline">`;
+    Object.entries(ws.moodCounts).sort((a,b)=>b[1]-a[1]).forEach(([mood,cnt]) => {
+      const m = MOODS[mood] || MOODS.neutral;
+      const pct = Math.round((cnt / ws.total) * 100);
+      html += `<div class="bar-row">
+        <span class="bar-label">${m.emoji} ${m.label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${m.color}"></div></div>
+        <span class="bar-count">${cnt}</span>
+      </div>`;
+    });
+    html += `</div>`;
+
+    if (ws.bestDay) {
+      html += `<div class="text-xs text-muted mt-2">🏆 Best day: <strong>${formatDate(ws.bestDay.date,{weekday:'long'})}</strong></div>`;
+    }
+
+    el.innerHTML = html;
+  }
+
+  // ── Month Stats ──────────────────────────────────────────────────────────
+  function renderMonthStats(entries, totalScore, scoredDays, daysInMon) {
+    const prefix = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+    const mo     = entries.filter(e => e.date.startsWith(prefix));
+    const trend  = Analytics.trendAnalysis(mo);
+    const vol    = Analytics.volatilityIndex(mo);
+
+    const statsEl = document.getElementById('monthStats');
+    statsEl.innerHTML = `
+      <div class="stat-card card-sm">
+        <div class="stat-value">${mo.length}</div>
+        <div class="stat-label">Days logged</div>
+        <div class="stat-sub">of ${daysInMon} days</div>
+      </div>
+      <div class="stat-card card-sm">
+        <div class="stat-value">${scoredDays ? (totalScore/scoredDays).toFixed(1) : '—'}</div>
+        <div class="stat-label">Avg Score</div>
+        <div class="stat-sub">out of 9.0</div>
+      </div>
+      <div class="stat-card card-sm">
+        <div class="stat-value">${vol}</div>
+        <div class="stat-label">Volatility</div>
+        <div class="stat-sub">out of 10</div>
+      </div>`;
+  }
+
+  // ── Monthly Trend mini-chart ──────────────────────────────────────────────
+  function renderMonthTrend(entries) {
+    const prefix = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+    const mo     = entries.filter(e => e.date.startsWith(prefix)).reverse();
+    const el     = document.getElementById('monthTrendContent');
+
+    if (!mo.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No entries this month.</div></div>';
+      return;
+    }
+
+    const trend = Analytics.trendAnalysis(mo);
+    const trendDir = { improving:'🚀 Improving', declining:'📉 Declining', stable:'⚖️ Stable', insufficient:'🌱 Not enough data' };
+    const trendClass = { improving:'trend-up', declining:'trend-down', stable:'trend-stable', insufficient:'trend-stable' };
+
+    let html = `<div style="margin-bottom:1rem">
+      <span class="trend-badge ${trendClass[trend.trend]}">${trendDir[trend.trend]}</span>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:56px">`;
+
+    mo.forEach(e => {
+      const m = MOODS[e.mood] || MOODS.neutral;
+      const h = Math.max(6, (m.score / 9) * 56);
+      html += `<div title="${m.emoji} ${formatDate(e.date,{month:'short',day:'numeric'})}"
+        style="flex:1;height:${h}px;background:${m.color};border-radius:3px 3px 0 0;opacity:0.85;cursor:default;transition:opacity 0.2s"
+        onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.85"></div>`;
+    });
+
+    html += `</div>
+    <div style="display:flex;justify-content:space-between;margin-top:4px" class="text-xs text-muted">
+      <span>${formatDate(mo[0].date,{month:'short',day:'numeric'})}</span>
+      <span>${formatDate(mo[mo.length-1].date,{month:'short',day:'numeric'})}</span>
+    </div>`;
+
+    el.innerHTML = html;
+  }
+
+  // ── Yearly Heatmap ────────────────────────────────────────────────────────
+  function renderHeatmap(byDate) {
+    const strip = document.getElementById('heatStrip');
+    strip.innerHTML = '';
+    const todayStr = today();
+    for (let i = 364; i >= 0; i--) {
+      const ds    = addDays(todayStr, -i);
+      const entry = byDate[ds];
+      const cell  = document.createElement('div');
+      cell.className = 'heat-cell';
+      cell.title    = ds + (entry ? ` — ${MOODS[entry.mood]?.label}` : ' — no entry');
+
+      if (entry) {
+        const m = MOODS[entry.mood] || MOODS.neutral;
+        const intensity = entry.intensity / 10;
+        cell.style.background = m.color;
+        cell.style.opacity     = 0.3 + intensity * 0.7;
+      } else {
+        cell.style.background = 'var(--cream)';
+        cell.style.border     = '1px solid var(--sage-pale)';
+      }
+
+      cell.addEventListener('click', () => {
+        if (entry) selectDay(ds, entry);
+      });
+      strip.appendChild(cell);
+    }
+  }
+
+  // ── Month navigation ──────────────────────────────────────────────────────
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+    renderCalendar();
+  });
+
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+    renderCalendar();
+  });
+
+  // ── Style for selected day ────────────────────────────────────────────────
+  const style = document.createElement('style');
+  style.textContent = `.cal-day.selected-day { outline: 2px solid var(--sage); outline-offset: 1px; }`;
+  document.head.appendChild(style);
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  State.subscribe(renderCalendar);
+  renderCalendar();
+  // Show today's entry by default
+  const todayEntry = State.getEntryByDate(today());
+  selectDay(today(), todayEntry || null);
+
+})();
+</script>
+</body>
+</html>
